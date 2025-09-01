@@ -121,3 +121,93 @@ python examples/real_data_example.py
    - `forecast_Y.csv` — previsões para `Y`
 
 > Dica: se `select_order` for `true`, o script escolhe `p` pelo AIC usando `statsmodels`.
+
+## Exemplo rápido (código no README)
+
+Abaixo um exemplo **mínimo e direto** mostrando como usar a API com `pandas`:
+
+```python
+import pandas as pd
+from favar_bbe import FAVARModel
+
+# 1) Carregue seus DataFrames X (T x N) e Y (T x M)
+# Exemplo: lendo CSVs já alinhados por data
+X = pd.read_csv("examples/X.csv", parse_dates=["date"]).set_index("date")
+Y = pd.read_csv("examples/Y.csv", parse_dates=["date"]).set_index("date")
+
+# (opcional) defina as slow-moving (preços/quantidades, etc.)
+slow_columns = [c for c in X.columns if "price" in c.lower() or "cpi" in c.lower()]
+
+# 2) Instancie o modelo
+#    - K: nº de fatores a extrair por PCA
+#    - p: ordem do VAR (ou use select_order=True para escolher por AIC)
+model = FAVARModel(K=3, p=13, policy_var="FFR", slow_columns=slow_columns, standardize=True)
+
+# 3) Ajuste (PCA + limpeza + VAR) e veja o resumo
+res = model.fit(X, Y)
+print(res.summary())
+
+# 4) IRFs para as variáveis observáveis do VAR (Y)
+irf_Y = model.impulse_response(horizon=60)     # resposta a um choque de política (FFR)
+print(irf_Y.head())
+
+# 5) IRFs projetadas para QUALQUER série do painel X
+#    - scale="original" devolve nas unidades originais (se X foi padronizado internamente)
+irf_X = model.impulse_response_X(horizon=60, scale="original")
+print(irf_X.filter(items=X.columns[:5]).head())  # mostra as 5 primeiras séries
+
+# 6) Previsão das variáveis Y por h passos
+fc_Y = model.forecast(steps=12)
+print(fc_Y.head())
+```
+
+### Seleção automática de `p` (AIC)
+
+```python
+model = FAVARModel(K=3, p=None, select_order=True, policy_var="FFR",
+                   slow_columns=slow_columns, standardize=True)
+res = model.fit(X, Y)
+```
+
+### Ordenação e identificação
+O modelo identifica choques por **Cholesky** com a variável de política (`policy_var`) **por último** na ordem do VAR.  
+Se quiser obtê-la explicitamente:
+```python
+print(res.order_)
+# ['F1', 'F2', 'F3', 'IP', 'CPI', 'FFR']  # por exemplo
+```
+
+## Exemplo “dados reais” (script + JSON)
+
+Este repositório inclui um **exemplo reproduzível** com configuração via JSON:
+
+- Script: `examples/real_data_example.py`  
+- Config: `examples/real_config.json`
+
+### Passos
+1. Coloque seus `X.csv` e `Y.csv` em `examples/` com a primeira coluna `date` e as demais colunas como séries.
+2. Edite `examples/real_config.json` (caminhos, `policy_var`, `K`, `p`/`select_order`, `slow_columns`, etc.).
+3. Execute:
+```bash
+python examples/real_data_example.py
+```
+4. Saídas em `examples/output/`:
+   - `irf_Y.csv` — IRFs para Y
+   - `irf_X.csv` — IRFs projetadas para X
+   - `forecast_Y.csv` — previsões para Y
+
+### Formato mínimo dos CSVs
+`X.csv`:
+```csv
+date,CPI_core,PPI_total,Oil_price,Series4,Series5
+1960-01,0.1,0.2,1.5,0.0,-0.1
+1960-02,0.0,0.1,1.6,0.1, 0.0
+...
+```
+`Y.csv` (deve conter `policy_var`, p.ex. `FFR`):
+```csv
+date,IP,CPI,FFR
+1960-01,0.2,0.1,2.75
+1960-02,0.1,0.2,2.88
+...
+```
