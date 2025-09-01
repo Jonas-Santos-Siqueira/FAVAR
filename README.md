@@ -76,13 +76,6 @@ Dadas as IRFs de \([\hat F, Y]\), projetamos de volta para cada série `X_j`:
 \[ \text{IRF}_{X}(h) = [\hat\Lambda\ \hat\Gamma]\,\text{IRF}_{[\hat F,Y]}(h). \]
 Se `standardize=True`, as respostas são reescaladas para unidades originais multiplicando pelo desvio-padrão de cada série.
 
-## Referência
-- Bernanke, B., Boivin, J., & Eliasz, P. (2005). *Measuring the Effects of Monetary Policy: A Factor-Augmented Vector Autoregressive (FAVAR) Approach*. Quarterly Journal of Economics.
-
-## Licença
-MIT
-
-
 ## Exemplo com dados reais (template)
 
 Coloque seus arquivos em `data/`:
@@ -122,7 +115,7 @@ python examples/real_data_example.py
 
 > Dica: se `select_order` for `true`, o script escolhe `p` pelo AIC usando `statsmodels`.
 
-## Exemplo rápido (código no README)
+## Exemplo rápido
 
 Abaixo um exemplo **mínimo e direto** mostrando como usar a API com `pandas`:
 
@@ -177,7 +170,7 @@ print(res.order_)
 # ['F1', 'F2', 'F3', 'IP', 'CPI', 'FFR']  # por exemplo
 ```
 
-## Exemplo “dados reais” (script + JSON)
+## Exemplo com dados reais (via JSON)
 
 Este repositório inclui um **exemplo reproduzível** com configuração via JSON:
 
@@ -211,3 +204,9 @@ date,IP,CPI,FFR
 1960-02,0.1,0.2,2.88
 ...
 ```
+
+## Referência
+- Bernanke, B., Boivin, J., & Eliasz, P. (2005). *Measuring the Effects of Monetary Policy: A Factor-Augmented Vector Autoregressive (FAVAR) Approach*. Quarterly Journal of Economics.
+
+## Licença
+MIT
