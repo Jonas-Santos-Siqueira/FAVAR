@@ -82,3 +82,42 @@ Se `standardize=True`, as respostas são reescaladas para unidades originais mul
 ## Licença
 MIT
 
+
+## Exemplo com dados reais (template)
+
+Coloque seus arquivos em `data/`:
+- `data/X_panel.csv` — painel informacional grande (T x N). Inclua uma coluna `date` (YYYY-MM) **ou** deixe a primeira coluna como índice temporal.
+- `data/Y_macro.csv` — observáveis do VAR (T x M), incluindo a série de política (ex.: `FFR`).
+- (Opcional) `data/slow_columns.txt` — nomes (um por linha) das séries de `X` consideradas *slow-moving*.
+
+Depois rode:
+```bash
+python examples/real_data_template.py
+```
+Os resultados vão para `outputs/` (IRFs e previsões em CSV; gráficos se `matplotlib` estiver disponível).
+
+---
+
+## Exemplo com dados reais (via JSON)
+
+Há um exemplo pronto em `examples/real_data_example.py` que lê as configurações de `examples/real_config.json`.
+
+### Passos
+1. Coloque seus arquivos `X.csv` e `Y.csv` na pasta `examples/` com a primeira coluna `date` (YYYY-MM/AAAA-MM ou YYYY-MM-DD) e demais colunas como séries.
+2. Edite `examples/real_config.json`:
+   - `X_path`, `Y_path`: caminhos dos CSVs
+   - `policy_var`: nome da variável de política em `Y`
+   - `K`, `p` (ou `select_order: true` para escolher por AIC)
+   - `slow_columns`: lista de colunas ou o caminho para um CSV (`slow_columns.csv`) com a coluna `name`
+   - `irf_horizon`, `X_irf_cols`, `X_irf_scale`
+   - `forecast_steps`
+3. Execute:
+```bash
+python examples/real_data_example.py
+```
+4. Saídas (`examples/output`):
+   - `irf_Y.csv` — IRFs para as variáveis de `Y`
+   - `irf_X.csv` — IRFs projetadas para as séries `X` (todas ou subconjunto)
+   - `forecast_Y.csv` — previsões para `Y`
+
+> Dica: se `select_order` for `true`, o script escolhe `p` pelo AIC usando `statsmodels`.
