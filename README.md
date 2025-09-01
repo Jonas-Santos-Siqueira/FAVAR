@@ -1,3 +1,7 @@
+![Python](https://img.shields.io/badge/Python-3.9%2B-informational)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![Status](https://img.shields.io/badge/status-research--ready-brightgreen)
+
 # A Factor-Augmented Vector Autoregressive (FAVAR)
 
 **FAVAR (Bernanke, Boivin & Eliasz, 2005)** em Python com API inspirada no `statsmodels`.
