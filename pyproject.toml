@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "favar-bbe"
+version = "0.1.0"
+description = "FAVAR (Bernanke, Boivin & Eliasz, 2005) em Python, estilo statsmodels"
+authors = [{name = "Jonas Siqueira et al."}]
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = ["numpy","pandas","scipy","statsmodels"]
+license = {text = "MIT"}
+
+[project.urls]
+Homepage = "https://github.com/"
