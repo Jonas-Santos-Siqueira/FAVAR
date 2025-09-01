@@ -1,4 +1,4 @@
-# favar-bbe
+# A Factor-Augmented Vector Autoregressive (FAVAR)
 
 **FAVAR (Bernanke, Boivin & Eliasz, 2005)** em Python com API inspirada no `statsmodels`.
 
