@@ -6,6 +6,13 @@ The project follows semantic versioning once the public API stabilizes. During
 the alpha period, minor releases may still include interface adjustments that
 are documented here.
 
+## [0.1.3] - 2026-06-29
+
+### Changed
+
+- Update repository links after the project moved to
+  `https://github.com/Siqueira-J-S/FAVAR`.
+
 ## [0.1.2] - 2026-06-29
 
 ### Changed

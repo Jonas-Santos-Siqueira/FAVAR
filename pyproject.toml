@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "favar"
-version = "0.1.2"
+version = "0.1.3"
 description = "Factor-Augmented Vector Autoregression (FAVAR) for empirical macroeconomic research"
 authors = [{name = "Jonas Santos Siqueira"}]
 readme = "README-PYPI.md"
@@ -28,9 +28,9 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Jonas-Santos-Siqueira/FAVAR"
-Repository = "https://github.com/Jonas-Santos-Siqueira/FAVAR"
-Issues = "https://github.com/Jonas-Santos-Siqueira/FAVAR/issues"
+Homepage = "https://github.com/Siqueira-J-S/FAVAR"
+Repository = "https://github.com/Siqueira-J-S/FAVAR"
+Issues = "https://github.com/Siqueira-J-S/FAVAR/issues"
 DOI = "https://doi.org/10.5281/zenodo.21017290"
 ORCID = "https://orcid.org/0009-0009-8918-8946"
 

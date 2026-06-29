@@ -11,7 +11,7 @@ research users.
 Clone the repository and install the package in editable mode:
 
 ```bash
-git clone https://github.com/Jonas-Santos-Siqueira/FAVAR.git
+git clone https://github.com/Siqueira-J-S/FAVAR.git
 cd FAVAR
 python -m pip install -e ".[test]"
 ```

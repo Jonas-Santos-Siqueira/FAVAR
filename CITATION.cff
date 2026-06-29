@@ -7,8 +7,8 @@ authors:
     given-names: J. S.
     orcid: "https://orcid.org/0009-0009-8918-8946"
 doi: 10.5281/zenodo.21017290
-url: "https://github.com/Jonas-Santos-Siqueira/FAVAR"
-repository-code: "https://github.com/Jonas-Santos-Siqueira/FAVAR"
-version: "0.1.2"
+url: "https://github.com/Siqueira-J-S/FAVAR"
+repository-code: "https://github.com/Siqueira-J-S/FAVAR"
+version: "0.1.3"
 date-released: "2026-06-29"
 license: MIT

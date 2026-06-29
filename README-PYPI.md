@@ -56,7 +56,7 @@ panel_irf = results.panel_impulse_response(
 The full documentation, mathematical details, synthetic walkthrough notebook,
 examples, and release notes are available in the GitHub repository:
 
-https://github.com/Jonas-Santos-Siqueira/FAVAR
+https://github.com/Siqueira-J-S/FAVAR
 
 ## Citation
 

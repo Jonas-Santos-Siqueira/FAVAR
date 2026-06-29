@@ -2,9 +2,9 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/favar.svg)](https://pypi.org/project/favar/)
 [![Python versions](https://img.shields.io/pypi/pyversions/favar.svg)](https://pypi.org/project/favar/)
-[![CI](https://github.com/Jonas-Santos-Siqueira/FAVAR/actions/workflows/ci.yml/badge.svg)](https://github.com/Jonas-Santos-Siqueira/FAVAR/actions/workflows/ci.yml)
+[![CI](https://github.com/Siqueira-J-S/FAVAR/actions/workflows/ci.yml/badge.svg)](https://github.com/Siqueira-J-S/FAVAR/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/Jonas-Santos-Siqueira/FAVAR)
+[![Status](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/Siqueira-J-S/FAVAR)
 
 `favar` is a Python package for estimating **Factor-Augmented Vector
 Autoregressive** models. It is designed for empirical macroeconomic research,
