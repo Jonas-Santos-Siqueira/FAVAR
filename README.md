@@ -1,216 +1,611 @@
-![Python](https://img.shields.io/badge/Python-3.9%2B-informational)
-![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-research--ready-brightgreen)
+# favar
 
-# A Factor-Augmented Vector Autoregressive (FAVAR)
+[![PyPI version](https://img.shields.io/pypi/v/favar.svg)](https://pypi.org/project/favar/)
+[![Python versions](https://img.shields.io/pypi/pyversions/favar.svg)](https://pypi.org/project/favar/)
+[![CI](https://github.com/Jonas-Santos-Siqueira/FAVAR/actions/workflows/ci.yml/badge.svg)](https://github.com/Jonas-Santos-Siqueira/FAVAR/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-alpha-orange.svg)](https://github.com/Jonas-Santos-Siqueira/FAVAR)
 
-**FAVAR (Bernanke, Boivin & Eliasz, 2005)** em Python com API inspirada no `statsmodels`.
+`favar` is a Python package for estimating **Factor-Augmented Vector
+Autoregressive** models. It is designed for empirical macroeconomic research,
+monetary policy analysis, forecasting, and impulse-response analysis with large
+information panels.
 
-> Este pacote implementa o procedimento **em dois passos** do BBE (2005):  
-> 1) Extração de fatores por **PCA** a partir de um painel informacional grande `X` (padronizado).  
-> 2) **Rotação/limpeza** dos fatores via regressão dos PCs sobre `[PCs_slow, R_t]` e **remoção** do componente contemporâneo do instrumento de política `R_t` (ex.: FFR), usando apenas variáveis *slow-moving* para ancorar a identificação.  
-> 3) Estimação de um **VAR** em `[F̂_t, Y_t]` com identificação recursiva (Cholesky) e o instrumento **ordenado por último**.  
-> 4) Projeção de IRFs para **qualquer série observável** `X_j` via a equação de medida \(X_t \approx \Lambda F_t + \Gamma Y_t\).
+The package implements the two-step FAVAR procedure of Bernanke, Boivin, and
+Eliasz (2005). It extracts latent factors from a large panel, removes the
+contemporaneous policy component from the estimated factors, estimates an
+augmented VAR system, and projects impulse responses back to any observable
+series in the information panel.
 
-## Instalação (local)
+## Contents
+
+- [Installation](#installation)
+- [Key Features](#key-features)
+- [Quick Start](#quick-start)
+- [Model Overview](#model-overview)
+- [Data Requirements](#data-requirements)
+- [Data Preparation and Transformations](#data-preparation-and-transformations)
+- [Slow-Moving and Fast-Moving Variables](#slow-moving-and-fast-moving-variables)
+- [Estimation Procedure](#estimation-procedure)
+- [Forecasting](#forecasting)
+- [Impulse Response Functions](#impulse-response-functions)
+- [Residual Autocorrelation Diagnostics](#residual-autocorrelation-diagnostics)
+- [Example Summary Output](#example-summary-output)
+- [Examples and Notebook](#examples-and-notebook)
+- [Public API](#public-api)
+- [Project Status and Releases](#project-status-and-releases)
+- [References](#references)
+
+## Installation
+
+Install the latest release from PyPI:
+
+```bash
+pip install favar
+```
+
+For an editable development install from a local checkout:
+
 ```bash
 pip install -e .
 ```
-ou simplesmente copie `src/favar_bbe` para seu projeto e importe `favar_bbe`.
 
-## Dependências
-- `numpy`, `pandas`, `scipy`, `statsmodels`
+For development and tests:
 
-## Estrutura mínima dos dados
-- `X`: `DataFrame` **T x N** de séries macro (recomendado padronizar — o `fit()` faz isso se `standardize=True`).
-- `Y`: `DataFrame` **T x M** de observáveis do VAR (ex.: `["IP", "CPI", "FFR"]`), contendo `policy_var`.
+```bash
+pip install -e ".[test]"
+pytest
+```
 
-Opcional:
-- `slow_columns`: lista com as colunas de `X` consideradas **slow-moving** (preços/quantidades). Caso não forneça, o modelo usa todas as colunas de `X` como *slow* por conveniência.
+## Key Features
 
-## Uso rápido
+- Two-step FAVAR estimation following Bernanke, Boivin, and Eliasz (2005).
+- Principal-component factor extraction from large information panels.
+- Slow-moving variable adjustment for recursive monetary policy identification.
+- Forecasts for observed variables with confidence intervals.
+- Orthogonalized impulse response functions for the augmented system.
+- Panel-projected impulse responses for any selected series in $X_t$.
+- Lag-order selection table with AIC, BIC, FPE, and HQIC.
+- Residual autocorrelation diagnostics with $2 / \sqrt{T}$ bounds.
+- Clean pandas-based interface.
+
+## Quick Start
+
 ```python
-import pandas as pd
-from favar_bbe import FAVARModel
+from favar import FAVAR
 
-# X: DataFrame T x N
-# Y: DataFrame T x M (deve conter a coluna "FFR", por exemplo)
-slow_cols = [...]  # sua lista de slow-moving (opcional, mas recomendado)
+model = FAVAR(
+    X=X,
+    Y=Y,
+    policy_var="policy_rate",
+    k_factors=3,
+    slow_columns=slow_columns,
+    standardize=True,
+)
 
-model = FAVARModel(K=3, p=13, policy_var="FFR", slow_columns=slow_cols, standardize=True)
-res = model.fit(X, Y)
+order_selection = model.select_order(maxlags=12)
+print(order_selection.summary())
 
-print(res.summary())                 # resumo do ajuste e do VAR
-irfs_Y = model.impulse_response(60)  # IRFs para Y (ex.: IP, CPI, FFR)
-fc_Y   = model.forecast(12)          # previsões de Y
+results = model.fit(lags=4)
+print(results.summary())
 
-# IRFs projetadas para QUALQUER série X (em unidades originais)
-irfs_X = model.impulse_response_X(horizon=60, scale="original")
-# ou para um subconjunto específico:
-irfs_prices = model.impulse_response_X(
-    horizon=60, X_cols=["CPI_core","PPI_total","Oil_price"], scale="original"
+forecast = results.forecast(steps=12, confidence_level=0.95)
+irf_y = results.impulse_response(periods=48, impulse_size=0.25)
+irf_x = results.panel_impulse_response(
+    periods=48,
+    columns=["ip_growth", "inflation_core"],
+    impulse_size=0.25,
 )
 ```
 
-## Exemplo completo (sintético)
-Veja `examples/synthetic_demo.py` para um exemplo auto-contido que:
-1. Gera um painel `X` e um `Y` sintéticos,
-2. Ajusta o FAVAR,
-3. Plota algumas IRFs (requer `matplotlib`).
+## Model Overview
 
-## Design de API
-- Classe principal: **`FAVARModel`**
-  - `fit(X, Y) -> FAVARResults`
-  - `forecast(steps)`
-  - `impulse_response(horizon, shock=policy_var)`
-  - `impulse_response_X(horizon, shock=policy_var, X_cols=None, scale="original"|"std")`
-  - `summary()`
+A FAVAR combines a large information panel $X_t$ with a smaller set of observed
+variables $Y_t$ that enter the VAR directly.
 
-### Sobre a rotação/limpeza (BBE, Seção III)
-Após a PCA, os PCs de `X` estimam combinações lineares do espaço \((F_t, Y_t)\).  
-O BBE remove o componente contemporâneo de `R_t` **apenas dos PCs** via regressão dos PCs de `X` sobre `[PCs_slow, R_t]` e subtração do termo proporcional a `R_t`. Isso evita que a identificação do choque de política seja contaminada por efeitos contemporâneos de `R_t` nos fatores.
+- $X_t$ is a large panel of economic indicators with dimension $T \times N$.
+- $Y_t$ is a smaller set of observed variables with dimension $T \times M$.
+- $F_t$ is a low-dimensional vector of latent factors extracted from $X_t$.
+- $R_t$ is the policy instrument, supplied through `policy_var`.
 
-### Identificação do choque de política
-O VAR é identificado por **Cholesky**, com o instrumento de política **ordenado por último**. A hipótese é que fatores (derivados de *slow-moving*) **não reagem dentro do mês** a choques de política.
+The estimated system is:
 
-### Mapeando IRFs para o espaço X
-A equação de medida é estimada por MQO:
-\[ X_t \approx [\Lambda\ \Gamma]\,[\hat F_t, Y_t]^\top. \]
-Dadas as IRFs de \([\hat F, Y]\), projetamos de volta para cada série `X_j`:
-\[ \text{IRF}_{X}(h) = [\hat\Lambda\ \hat\Gamma]\,\text{IRF}_{[\hat F,Y]}(h). \]
-Se `standardize=True`, as respostas são reescaladas para unidades originais multiplicando pelo desvio-padrão de cada série.
+$$
+\begin{aligned}
+Z_t &= c + A_1 Z_{t-1} + \cdots + A_p Z_{t-p} + u_t, \\
+X_t &= d + \Lambda F_t + \Gamma Y_t + e_t,
+\end{aligned}
+$$
 
-## Exemplo com dados reais (template)
+where:
 
-Coloque seus arquivos em `data/`:
-- `data/X_panel.csv` — painel informacional grande (T x N). Inclua uma coluna `date` (YYYY-MM) **ou** deixe a primeira coluna como índice temporal.
-- `data/Y_macro.csv` — observáveis do VAR (T x M), incluindo a série de política (ex.: `FFR`).
-- (Opcional) `data/slow_columns.txt` — nomes (um por linha) das séries de `X` consideradas *slow-moving*.
+$$
+Z_t =
+\begin{bmatrix}
+F_t \\
+Y_t
+\end{bmatrix}.
+$$
 
-Depois rode:
-```bash
-python examples/real_data_template.py
-```
-Os resultados vão para `outputs/` (IRFs e previsões em CSV; gráficos se `matplotlib` estiver disponível).
+The policy variable is ordered last in $Y_t$ for recursive identification.
 
----
+## Data Requirements
 
-## Exemplo com dados reais (via JSON)
-
-Há um exemplo pronto em `examples/real_data_example.py` que lê as configurações de `examples/real_config.json`.
-
-### Passos
-1. Coloque seus arquivos `X.csv` e `Y.csv` na pasta `examples/` com a primeira coluna `date` (YYYY-MM/AAAA-MM ou YYYY-MM-DD) e demais colunas como séries.
-2. Edite `examples/real_config.json`:
-   - `X_path`, `Y_path`: caminhos dos CSVs
-   - `policy_var`: nome da variável de política em `Y`
-   - `K`, `p` (ou `select_order: true` para escolher por AIC)
-   - `slow_columns`: lista de colunas ou o caminho para um CSV (`slow_columns.csv`) com a coluna `name`
-   - `irf_horizon`, `X_irf_cols`, `X_irf_scale`
-   - `forecast_steps`
-3. Execute:
-```bash
-python examples/real_data_example.py
-```
-4. Saídas (`examples/output`):
-   - `irf_Y.csv` — IRFs para as variáveis de `Y`
-   - `irf_X.csv` — IRFs projetadas para as séries `X` (todas ou subconjunto)
-   - `forecast_Y.csv` — previsões para `Y`
-
-> Dica: se `select_order` for `true`, o script escolhe `p` pelo AIC usando `statsmodels`.
-
-## Exemplo rápido
-
-Abaixo um exemplo **mínimo e direto** mostrando como usar a API com `pandas`:
+Prepare two pandas `DataFrame` objects:
 
 ```python
+X  # large information panel, shape T x N
+Y  # observed VAR variables, shape T x M
+```
+
+Both inputs must:
+
+- have a compatible time index;
+- be observed at the same frequency, such as monthly or quarterly;
+- contain only numeric columns;
+- contain no missing values after transformations;
+- be aligned over the same sample period;
+- include `policy_var` as a column of `Y`.
+
+Example layout:
+
+```text
+X
+            ip_growth  employment_growth  inflation_core  credit_spread
+2000-01         0.31               0.12            0.22           1.21
+2000-02         0.28               0.10            0.19           1.18
+```
+
+```text
+Y
+            output_growth  inflation  policy_rate
+2000-01             0.31       0.22         5.75
+2000-02             0.28       0.19         5.80
+```
+
+## Data Preparation and Transformations
+
+The package standardizes `X` internally when `standardize=True`, but it does
+not decide the economic transformation of each raw series. Transformations
+should be chosen before estimation.
+
+Common transformations:
+
+### Log growth
+
+For real quantities such as production, employment, credit, or monetary
+aggregates:
+
+$$
+\Delta \log(x_t) = 100 \left[\log(x_t) - \log(x_{t-1})\right].
+$$
+
+### Inflation
+
+For price indexes:
+
+$$
+\pi_t = 100 \left[\log(P_t) - \log(P_{t-1})\right].
+$$
+
+### Interest rates and spreads
+
+Interest rates, spreads, and percentages are often used in levels:
+
+$$
+r_t = R_t.
+$$
+
+They can also be differenced when the empirical design calls for changes:
+
+$$
+\Delta r_t = r_t - r_{t-1}.
+$$
+
+### Practical preprocessing checklist
+
+Before fitting the model:
+
+- seasonally adjust series when appropriate;
+- apply logs before differencing strictly positive level series;
+- avoid mixing levels and growth rates without an economic reason;
+- document outlier treatment and sample restrictions;
+- call `dropna()` after transformations;
+- verify that `X.index.equals(Y.index)` is `True`.
+
+Example:
+
+```python
+import numpy as np
 import pandas as pd
-from favar_bbe import FAVARModel
 
-# 1) Carregue seus DataFrames X (T x N) e Y (T x M)
-# Exemplo: lendo CSVs já alinhados por data
-X = pd.read_csv("examples/X.csv", parse_dates=["date"]).set_index("date")
-Y = pd.read_csv("examples/Y.csv", parse_dates=["date"]).set_index("date")
+raw = pd.read_csv("macro_panel.csv", parse_dates=["date"]).set_index("date")
 
-# (opcional) defina as slow-moving (preços/quantidades, etc.)
-slow_columns = [c for c in X.columns if "price" in c.lower() or "cpi" in c.lower()]
+X = pd.DataFrame(index=raw.index)
+X["ip_growth"] = 100 * np.log(raw["industrial_production"]).diff()
+X["employment_growth"] = 100 * np.log(raw["employment"]).diff()
+X["inflation_core"] = 100 * np.log(raw["core_price_index"]).diff()
+X["credit_spread"] = raw["credit_spread"]
 
-# 2) Instancie o modelo
-#    - K: nº de fatores a extrair por PCA
-#    - p: ordem do VAR (ou use select_order=True para escolher por AIC)
-model = FAVARModel(K=3, p=13, policy_var="FFR", slow_columns=slow_columns, standardize=True)
+Y = pd.DataFrame(index=raw.index)
+Y["output_growth"] = X["ip_growth"]
+Y["inflation"] = X["inflation_core"]
+Y["policy_rate"] = raw["policy_rate"]
 
-# 3) Ajuste (PCA + limpeza + VAR) e veja o resumo
-res = model.fit(X, Y)
-print(res.summary())
-
-# 4) IRFs para as variáveis observáveis do VAR (Y)
-irf_Y = model.impulse_response(horizon=60)     # resposta a um choque de política (FFR)
-print(irf_Y.head())
-
-# 5) IRFs projetadas para QUALQUER série do painel X
-#    - scale="original" devolve nas unidades originais (se X foi padronizado internamente)
-irf_X = model.impulse_response_X(horizon=60, scale="original")
-print(irf_X.filter(items=X.columns[:5]).head())  # mostra as 5 primeiras séries
-
-# 6) Previsão das variáveis Y por h passos
-fc_Y = model.forecast(steps=12)
-print(fc_Y.head())
+data = pd.concat([X, Y], axis=1).dropna()
+X = data[X.columns]
+Y = data[Y.columns]
 ```
 
-### Seleção automática de `p` (AIC)
+## Slow-Moving and Fast-Moving Variables
+
+For monetary policy applications, the information panel is divided into:
+
+- **slow-moving variables**: variables assumed not to react contemporaneously to
+  the policy shock within the period, such as output, employment, consumption,
+  and some prices;
+- **fast-moving variables**: variables allowed to react within the period, such
+  as interest rates, spreads, asset prices, and financial indicators.
+
+Pass the slow-moving columns through `slow_columns`:
 
 ```python
-model = FAVARModel(K=3, p=None, select_order=True, policy_var="FFR",
-                   slow_columns=slow_columns, standardize=True)
-res = model.fit(X, Y)
+slow_columns = [
+    "ip_growth",
+    "employment_growth",
+    "inflation_core",
+]
 ```
 
-### Ordenação e identificação
-O modelo identifica choques por **Cholesky** com a variável de política (`policy_var`) **por último** na ordem do VAR.  
-Se quiser obtê-la explicitamente:
+If `slow_columns=None`, all columns in `X` are treated as slow-moving. This is
+allowed, but explicit classification is recommended for monetary policy work.
+
+## Estimation Procedure
+
+Let $X^s$ denote the standardized information panel:
+
+$$
+X^s_{tj} = \frac{X_{tj} - \bar{X}_j}{s_j}.
+$$
+
+The implemented two-step estimator proceeds as follows.
+
+### 1. Principal components from the full panel
+
+Estimate $K$ principal components from $X^s$:
+
+$$
+\widehat{C}_t = \widehat{C}(F_t, Y_t).
+$$
+
+These components estimate the common space spanned by both latent factors and
+observed variables.
+
+### 2. Principal components from slow-moving variables
+
+Estimate $K$ principal components from the slow-moving subset of the panel:
+
+$$
+\widehat{C}^{*}_t = \widehat{C}^{*}(F_t).
+$$
+
+These components are used to isolate the latent factor space from the
+contemporaneous policy instrument.
+
+### 3. Remove the contemporaneous policy component
+
+Regress the full-panel principal components on a constant, the policy
+instrument, and the slow-moving principal components:
+
+$$
+\widehat{C}_t
+= a + b_R R_t + B_S \widehat{C}^{*}_t + v_t.
+$$
+
+The cleaned factor estimate is:
+
+$$
+\widehat{F}_t = \widehat{C}_t - \widehat{b}_R R_t.
+$$
+
+### 4. Estimate the augmented VAR
+
+Stack the cleaned factors and observed variables:
+
+$$
+\widehat{Z}_t =
+\begin{bmatrix}
+\widehat{F}_t \\
+Y_t
+\end{bmatrix}.
+$$
+
+Estimate:
+
+$$
+\widehat{Z}_t
+= c + A_1 \widehat{Z}_{t-1}
++ \cdots
++ A_p \widehat{Z}_{t-p}
++ u_t.
+$$
+
+### 5. Estimate the measurement equation
+
+Estimate the relationship between the standardized information panel and the
+augmented state:
+
+$$
+X^s_t = d + \Theta \widehat{Z}_t + e_t.
+$$
+
+This measurement equation allows responses from the FAVAR system to be mapped
+back to each series in $X$:
+
+$$
+\operatorname{IRF}_{X}(h)
+= \operatorname{IRF}_{Z}(h)\widehat{\Theta}.
+$$
+
+When `scale="original"`, projected panel responses are multiplied by the
+stored standard deviation of each original `X` column.
+
+## Basic Usage
+
 ```python
-print(res.order_)
-# ['F1', 'F2', 'F3', 'IP', 'CPI', 'FFR']  # por exemplo
+from favar import FAVAR
+
+model = FAVAR(
+    X=X,
+    Y=Y,
+    policy_var="policy_rate",
+    k_factors=3,
+    slow_columns=slow_columns,
+    standardize=True,
+)
+
+results = model.fit(lags=13)
+print(results.summary())
 ```
 
-## Exemplo com dados reais (via JSON)
+Main arguments:
 
-Este repositório inclui um **exemplo reproduzível** com configuração via JSON:
+- `X`: large information panel.
+- `Y`: observed variables included directly in the FAVAR system.
+- `policy_var`: policy instrument column in `Y`.
+- `k_factors`: number of latent factors.
+- `slow_columns`: slow-moving columns from `X`.
+- `standardize`: whether to standardize `X` before factor extraction.
+- `lags`: fixed lag order for the augmented VAR.
 
-- Script: `examples/real_data_example.py`  
-- Config: `examples/real_config.json`
+Lag order can also be selected by an information criterion:
 
-### Passos
-1. Coloque seus `X.csv` e `Y.csv` em `examples/` com a primeira coluna `date` e as demais colunas como séries.
-2. Edite `examples/real_config.json` (caminhos, `policy_var`, `K`, `p`/`select_order`, `slow_columns`, etc.).
-3. Execute:
+```python
+order_selection = model.select_order(maxlags=12)
+print(order_selection.summary())
+
+results = model.fit(select_order="aic", maxlags=12)
+```
+
+Accepted criteria are `"aic"`, `"bic"`, `"hqic"`, and `"fpe"`.
+
+Compact order-selection example:
+
+```text
+FAVAR Lag Order Selection (* highlights the minimums)
+==================================
+    AIC     BIC     FPE      HQIC
+----------------------------------
+0  -1.262  -1.208   0.2832  -1.240
+1 -3.985* -3.769* 0.01859* -3.897*
+2  -3.979  -3.601  0.01870  -3.826
+3  -3.927  -3.386  0.01971  -3.708
+4  -3.881  -3.178  0.02066  -3.596
+----------------------------------
+```
+
+## Forecasting
+
+Use `forecast()` to forecast the observed variables in `Y`:
+
+```python
+forecast = results.forecast(steps=12, confidence_level=0.95)
+print(forecast.head())
+```
+
+For each variable in `Y`, the output includes:
+
+- point forecast;
+- lower confidence bound;
+- upper confidence bound.
+
+Example column names:
+
+```text
+policy_rate  policy_rate_lower  policy_rate_upper
+```
+
+## Impulse Response Functions
+
+Use `impulse_response()` for responses of the augmented FAVAR system.
+
+```python
+irf_system = results.impulse_response(
+    periods=48,
+    shock="policy_rate",
+    impulse_size=0.25,
+    include_factors=False,
+)
+print(irf_system.head())
+```
+
+`impulse_size=0.25` rescales the shock so that the impact response of the
+policy variable is `0.25`. If the policy rate is measured in percentage
+points, this corresponds to 25 basis points.
+
+Use `panel_impulse_response()` to project responses back to selected series in
+the information panel:
+
+```python
+irf_panel = results.panel_impulse_response(
+    periods=48,
+    shock="policy_rate",
+    columns=["ip_growth", "inflation_core", "credit_spread"],
+    scale="original",
+    impulse_size=0.25,
+)
+print(irf_panel.head())
+```
+
+Use:
+
+- `scale="original"` for projected responses in the transformed units supplied
+  by the user;
+- `scale="std"` for responses in standardized panel units.
+
+## Residual Autocorrelation Diagnostics
+
+Use `plot_acorr()` to inspect residual autocorrelations and cross-correlations
+of the augmented FAVAR system:
+
+```python
+fig = results.plot_acorr(nlags=10)
+```
+
+The figure contains one panel for each pair of variables in the augmented
+system. The dashed bands are $2 / \sqrt{T}$ bounds.
+
+## Example Summary Output
+
+`results.summary()` returns a text summary with overall fit statistics,
+equation-by-equation coefficients, residual correlations, and FAVAR-specific
+metadata.
+
+Compact example:
+
+```text
+  Summary of FAVAR Regression Results
+======================================
+Model:                           FAVAR
+Estimator:                Two-step PCA
+VAR method:                        OLS
+Date:               Sun, 28, Jun, 2026
+Time:                         21:14:27
+--------------------------------------------------------------------
+No. of Equations:               3    BIC:                  -3.59224
+Nobs:                         178    HQIC:                 -3.81539
+Log likelihood:        -383.59539    FPE:                   0.01892
+AIC:                     -3.96762    Det(Omega_mle):        0.01685
+--------------------------------------------------------------------
+FAVAR Model Information
+====================================================================
+No. of factors:                                                    2
+No. of X variables:                                               40
+No. of observed Y variables:                                       1
+No. of slow-moving variables:                                     20
+Policy variable:                                                 FFR
+Policy position:                                                   3
+Lag order:                                                         2
+Standardized X:                                                 True
+PC variance shares:                                     0.579, 0.248
+--------------------------------------------------------------------
+Identification: recursive policy shock with the policy variable ordered last.
+Results for equation F1
+============================================================================
+                coefficient       std. error         t-stat          prob
+----------------------------------------------------------------------------
+const              0.024340         0.040805       0.596496         0.551
+L1.F1              0.699803         0.078694       8.892735         0.000
+L1.F2              0.055353         0.068085       0.813003         0.416
+L1.FFR            -0.001386         0.028840      -0.048049         0.962
+...
+
+Correlation matrix of residuals
+           F1        F2       FFR
+F1   1.000000 -0.266766 -0.145655
+F2  -0.266766  1.000000  0.674814
+FFR -0.145655  0.674814  1.000000
+```
+
+## Examples and Notebook
+
+Run the self-contained script:
+
 ```bash
-python examples/real_data_example.py
-```
-4. Saídas em `examples/output/`:
-   - `irf_Y.csv` — IRFs para Y
-   - `irf_X.csv` — IRFs projetadas para X
-   - `forecast_Y.csv` — previsões para Y
-
-### Formato mínimo dos CSVs
-`X.csv`:
-```csv
-date,CPI_core,PPI_total,Oil_price,Series4,Series5
-1960-01,0.1,0.2,1.5,0.0,-0.1
-1960-02,0.0,0.1,1.6,0.1, 0.0
-...
-```
-`Y.csv` (deve conter `policy_var`, p.ex. `FFR`):
-```csv
-date,IP,CPI,FFR
-1960-01,0.2,0.1,2.75
-1960-02,0.1,0.2,2.88
-...
+python examples/synthetic_demo.py
 ```
 
-## Referência
-- Bernanke, B., Boivin, J., & Eliasz, P. (2005). *Measuring the Effects of Monetary Policy: A Factor-Augmented Vector Autoregressive (FAVAR) Approach*. Quarterly Journal of Economics.
+Open the walkthrough notebook:
 
-## Licença
-MIT
+```text
+notebooks/favar_synthetic_walkthrough.ipynb
+```
+
+The notebook demonstrates:
+
+1. package import and installation check;
+2. synthetic macroeconomic data generation;
+3. preprocessing and transformations;
+4. construction of `X`, `Y`, and `slow_columns`;
+5. FAVAR estimation;
+6. forecasts with confidence intervals;
+7. impulse response functions;
+8. panel-projected impulse responses.
+
+## Public API
+
+```python
+from favar import FAVAR
+```
+
+Main methods:
+
+- `FAVAR(...).fit(...)`: estimate the model.
+- `results.summary()`: print the estimation summary.
+- `model.select_order(maxlags=12)`: compare lag orders by information criteria.
+- `results.forecast(steps, confidence_level=0.95)`: forecast observed
+  variables.
+- `results.impulse_response(periods, impulse_size=None)`: compute system IRFs.
+- `results.panel_impulse_response(periods, columns=None)`: compute IRFs
+  projected to the information panel.
+- `results.plot_acorr(nlags=10)`: plot residual autocorrelations and
+  cross-correlations.
+- `results.is_stable()`: check dynamic stability of the augmented VAR.
+
+## Final Checklist Before Estimation
+
+- `X` and `Y` have the same time index.
+- No missing values remain after transformations.
+- All columns in `X` and `Y` are numeric.
+- `policy_var` is a column of `Y`.
+- Every item in `slow_columns` is a column of `X`.
+- `k_factors <= min(T, N)`.
+- The lag order is feasible for the available sample size.
+- Transformations are economically justified and documented.
+
+## Project Status and Releases
+
+This GitHub repository is the official source repository for the `favar` PyPI
+package. Public package releases are available at
+[pypi.org/project/favar](https://pypi.org/project/favar/), and release history is
+tracked in [CHANGELOG.md](CHANGELOG.md).
+
+Development changes should be proposed through GitHub commits and pull requests.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the local development workflow and
+[RELEASING.md](RELEASING.md) for the PyPI release process.
+
+## References
+
+Bernanke, B. S., Boivin, J., & Eliasz, P. (2005). Measuring the Effects of
+Monetary Policy: A Factor-Augmented Vector Autoregressive (FAVAR) Approach.
+Quarterly Journal of Economics.
+
+Lutkepohl, H. (2005). New Introduction to Multiple Time Series Analysis.
+Springer.
+
+Seabold, S., & Perktold, J. (2010). statsmodels: Econometric and Statistical
+Modeling with Python. Proceedings of the 9th Python in Science Conference.
+
+## License
+
+MIT.
