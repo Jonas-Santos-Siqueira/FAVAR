@@ -119,7 +119,7 @@ def add_panel_title(ax, title: str, subtitle: str | None = None):
     ax.set_title("")
     ax.text(
         0.0,
-        1.155,
+        1.075,
         title,
         transform=ax.transAxes,
         ha="left",
@@ -132,7 +132,7 @@ def add_panel_title(ax, title: str, subtitle: str | None = None):
     if subtitle:
         ax.text(
             0.0,
-            1.085,
+            1.015,
             subtitle,
             transform=ax.transAxes,
             ha="left",
