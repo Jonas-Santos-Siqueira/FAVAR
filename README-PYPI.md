@@ -1,4 +1,4 @@
-# favar
+# Factor-Augmented Vector Autoregression (FAVAR)
 
 `favar` is a Python package for estimating Factor-Augmented Vector
 Autoregression (FAVAR) models in empirical macroeconomic research.
@@ -59,6 +59,33 @@ examples, and release notes are available in the GitHub repository:
 https://github.com/Jonas-Santos-Siqueira/FAVAR
 
 ## Citation
+
+If you use `favar` in academic work, please cite:
+
+```text
+Siqueira, J. S. (2026). Factor-Augmented Vector Autoregression (FAVAR)
+[Python package]. Zenodo. https://doi.org/10.5281/zenodo.21017290
+```
+
+ORCID: [0009-0009-8918-8946](https://orcid.org/0009-0009-8918-8946)
+
+DOI: [10.5281/zenodo.21017290](https://doi.org/10.5281/zenodo.21017290)
+
+BibTeX:
+
+```bibtex
+@software{siqueira_favar_2026,
+  author = {Siqueira, J. S.},
+  title = {Factor-Augmented Vector Autoregression (FAVAR)},
+  year = {2026},
+  publisher = {Zenodo},
+  doi = {10.5281/zenodo.21017290},
+  url = {https://doi.org/10.5281/zenodo.21017290},
+  orcid = {0009-0009-8918-8946}
+}
+```
+
+## Reference
 
 Bernanke, B. S., Boivin, J., & Eliasz, P. (2005). Measuring the Effects of
 Monetary Policy: A Factor-Augmented Vector Autoregressive (FAVAR) Approach.

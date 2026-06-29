@@ -6,6 +6,15 @@ The project follows semantic versioning once the public API stabilizes. During
 the alpha period, minor releases may still include interface adjustments that
 are documented here.
 
+## [0.1.2] - 2026-06-29
+
+### Changed
+
+- Update the PyPI presentation title to `Factor-Augmented Vector Autoregression
+  (FAVAR)`.
+- Add citation metadata, DOI, and ORCID to the GitHub README, PyPI page, and
+  repository citation file.
+
 ## [0.1.1] - 2026-06-28
 
 ### Changed

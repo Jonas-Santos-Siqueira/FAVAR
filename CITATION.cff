@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+title: "Factor-Augmented Vector Autoregression (FAVAR)"
+type: software
+authors:
+  - family-names: Siqueira
+    given-names: J. S.
+    orcid: "https://orcid.org/0009-0009-8918-8946"
+doi: 10.5281/zenodo.21017290
+url: "https://github.com/Jonas-Santos-Siqueira/FAVAR"
+repository-code: "https://github.com/Jonas-Santos-Siqueira/FAVAR"
+version: "0.1.2"
+date-released: "2026-06-29"
+license: MIT

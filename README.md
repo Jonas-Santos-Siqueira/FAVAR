@@ -34,6 +34,7 @@ series in the information panel.
 - [Examples and Notebook](#examples-and-notebook)
 - [Public API](#public-api)
 - [Project Status and Releases](#project-status-and-releases)
+- [Citation](#citation)
 - [References](#references)
 
 ## Installation
@@ -563,6 +564,33 @@ tracked in [CHANGELOG.md](CHANGELOG.md).
 Development changes should be proposed through GitHub commits and pull requests.
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the local development workflow and
 [RELEASING.md](RELEASING.md) for the PyPI release process.
+
+## Citation
+
+If you use `favar` in academic work, please cite:
+
+```text
+Siqueira, J. S. (2026). Factor-Augmented Vector Autoregression (FAVAR)
+[Python package]. Zenodo. https://doi.org/10.5281/zenodo.21017290
+```
+
+Author ORCID: [0009-0009-8918-8946](https://orcid.org/0009-0009-8918-8946)
+
+DOI: [10.5281/zenodo.21017290](https://doi.org/10.5281/zenodo.21017290)
+
+BibTeX:
+
+```bibtex
+@software{siqueira_favar_2026,
+  author = {Siqueira, J. S.},
+  title = {Factor-Augmented Vector Autoregression (FAVAR)},
+  year = {2026},
+  publisher = {Zenodo},
+  doi = {10.5281/zenodo.21017290},
+  url = {https://doi.org/10.5281/zenodo.21017290},
+  orcid = {0009-0009-8918-8946}
+}
+```
 
 ## References
 
