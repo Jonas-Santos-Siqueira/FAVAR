@@ -97,12 +97,9 @@ variables $Y_t$ that enter the VAR directly.
 
 The estimated system is:
 
-$$
-\begin{aligned}
-Z_t &= c + A_1 Z_{t-1} + \cdots + A_p Z_{t-p} + u_t, \\
-X_t &= d + \Lambda F_t + \Gamma Y_t + e_t,
-\end{aligned}
-$$
+$$Z_t = c + A_1 Z_{t-1} + \cdots + A_p Z_{t-p} + u_t.$$
+
+$$X_t = d + \Lambda F_t + \Gamma Y_t + e_t.$$
 
 where:
 
@@ -272,9 +269,7 @@ observed variables.
 
 Estimate $K$ principal components from the slow-moving subset of the panel:
 
-$$
-\widehat{C}^{*}_t = \widehat{C}^{*}(F_t).
-$$
+$$\widehat{C}^{\star}_t = \widehat{C}^{\star}(F_t).$$
 
 These components are used to isolate the latent factor space from the
 contemporaneous policy instrument.
@@ -284,10 +279,7 @@ contemporaneous policy instrument.
 Regress the full-panel principal components on a constant, the policy
 instrument, and the slow-moving principal components:
 
-$$
-\widehat{C}_t
-= a + b_R R_t + B_S \widehat{C}^{*}_t + v_t.
-$$
+$$\widehat{C}_t = a + b_R R_t + B_S \widehat{C}^{\star}_t + v_t.$$
 
 The cleaned factor estimate is:
 
@@ -309,13 +301,7 @@ $$
 
 Estimate:
 
-$$
-\widehat{Z}_t
-= c + A_1 \widehat{Z}_{t-1}
-+ \cdots
-+ A_p \widehat{Z}_{t-p}
-+ u_t.
-$$
+$$\widehat{Z}_t = c + A_1 \widehat{Z}_{t-1} + \cdots + A_p \widehat{Z}_{t-p} + u_t.$$
 
 ### 5. Estimate the measurement equation
 
@@ -329,10 +315,7 @@ $$
 This measurement equation allows responses from the FAVAR system to be mapped
 back to each series in $X$:
 
-$$
-\operatorname{IRF}_{X}(h)
-= \operatorname{IRF}_{Z}(h)\widehat{\Theta}.
-$$
+$$\mathrm{IRF}_{X}(h) = \mathrm{IRF}_{Z}(h)\widehat{\Theta}.$$
 
 When `scale="original"`, projected panel responses are multiplied by the
 stored standard deviation of each original `X` column.
