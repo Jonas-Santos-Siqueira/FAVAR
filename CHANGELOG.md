@@ -6,6 +6,13 @@ The project follows semantic versioning once the public API stabilizes. During
 the alpha period, minor releases may still include interface adjustments that
 are documented here.
 
+## [0.1.1] - 2026-06-28
+
+### Changed
+
+- Use a concise PyPI project description while keeping the complete
+  documentation in the GitHub README.
+
 ## [0.1.0] - 2026-06-28
 
 ### Added

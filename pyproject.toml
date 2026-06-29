@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "favar"
-version = "0.1.0"
+version = "0.1.1"
 description = "Factor-Augmented Vector Autoregression (FAVAR) for empirical macroeconomic research"
 authors = [{name = "Jonas Santos Siqueira"}]
-readme = "README.md"
+readme = "README-PYPI.md"
 requires-python = ">=3.10"
 dependencies = [
     "numpy>=1.22",
