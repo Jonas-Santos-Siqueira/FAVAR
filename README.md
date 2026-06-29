@@ -1,4 +1,4 @@
-# favar
+# Factor-Augmented Vector Autoregression (FAVAR)
 
 [![PyPI version](https://img.shields.io/pypi/v/favar.svg)](https://pypi.org/project/favar/)
 [![Python versions](https://img.shields.io/pypi/pyversions/favar.svg)](https://pypi.org/project/favar/)
@@ -42,19 +42,6 @@ Install the latest release from PyPI:
 
 ```bash
 pip install favar
-```
-
-For an editable development install from a local checkout:
-
-```bash
-pip install -e .
-```
-
-For development and tests:
-
-```bash
-pip install -e ".[test]"
-pytest
 ```
 
 ## Key Features
