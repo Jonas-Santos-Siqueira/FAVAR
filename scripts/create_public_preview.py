@@ -16,27 +16,37 @@ except ModuleNotFoundError:
     from favar import FAVAR
 
 
+PAPER = "#f4f1e8"
+INK = "#202020"
+MUTED = "#6f6b62"
+GRID = "#d8d1c3"
+RED = "#e62b1e"
+RED_LIGHT = "#f7aaa2"
+GREY = "#b7b5ac"
+BLUE_GREY = "#4f6372"
+
+
 def simulate_public_example(
-    nobs: int = 220,
+    nobs: int = 228,
     nseries: int = 48,
     k_factors: int = 2,
     n_slow: int = 26,
     seed: int = 2026,
 ):
-    """Generate a reproducible macro-style panel with a policy channel."""
+    """Generate a reproducible macro-style panel with a visible policy channel."""
     rng = np.random.default_rng(seed)
     transition = np.array(
         [
-            [0.66, 0.10, -0.22],
-            [0.06, 0.62, -0.12],
-            [0.18, 0.22, 0.56],
+            [0.70, 0.08, -0.18],
+            [0.08, 0.64, -0.10],
+            [0.14, 0.20, 0.58],
         ]
     )
     shocks = np.array(
         [
-            [0.62, 0.00, 0.00],
-            [0.16, 0.46, 0.00],
-            [-0.08, 0.18, 0.42],
+            [0.56, 0.00, 0.00],
+            [0.12, 0.44, 0.00],
+            [-0.06, 0.16, 0.36],
         ]
     )
 
@@ -49,13 +59,13 @@ def simulate_public_example(
     factors = states[:, :k_factors]
     policy = states[:, 2]
     factor_loadings = rng.normal(size=(nseries, k_factors))
-    policy_loadings = rng.normal(scale=0.45, size=nseries)
+    policy_loadings = rng.normal(scale=0.40, size=nseries)
     policy_loadings[:n_slow] = 0.0
 
     panel = (
         factors @ factor_loadings.T
         + np.outer(policy, policy_loadings)
-        + rng.normal(scale=0.42, size=(nobs, nseries))
+        + rng.normal(scale=0.40, size=(nobs, nseries))
     )
     index = pd.period_range("2006-01", periods=nobs, freq="M")
     X = pd.DataFrame(
@@ -65,13 +75,13 @@ def simulate_public_example(
     )
     Y = pd.DataFrame(
         {
-            "Activity": 0.90 * factors[:, 0]
+            "Activity": 0.94 * factors[:, 0]
             + 0.08 * factors[:, 1]
-            + rng.normal(scale=0.14, size=nobs),
-            "Inflation": 0.24 * factors[:, 0]
-            + 0.70 * factors[:, 1]
-            + rng.normal(scale=0.14, size=nobs),
-            "Policy rate": policy + rng.normal(scale=0.07, size=nobs),
+            + rng.normal(scale=0.13, size=nobs),
+            "Inflation": 0.20 * factors[:, 0]
+            + 0.74 * factors[:, 1]
+            + rng.normal(scale=0.13, size=nobs),
+            "Policy rate": policy + rng.normal(scale=0.06, size=nobs),
         },
         index=index,
     )
@@ -88,162 +98,178 @@ def fit_example():
         slow_columns=slow_columns,
         standardize=True,
     )
-    return model.fit(lags=2)
+    return Y, model.fit(lags=2)
 
 
-def direct_label(ax, x, y, label, color, dy=0.0):
-    ax.text(
-        x,
-        y + dy,
-        label,
-        color=color,
-        fontsize=10,
-        fontweight="bold",
-        va="center",
-        ha="left",
+def style_axes(ax):
+    ax.set_facecolor(PAPER)
+    ax.grid(axis="y", color=GRID, linewidth=0.8)
+    ax.grid(axis="x", visible=False)
+    ax.tick_params(axis="both", colors=INK, labelsize=8.5, length=3, width=0.9)
+    for side in ["top", "right"]:
+        ax.spines[side].set_visible(False)
+    for side in ["left", "bottom"]:
+        ax.spines[side].set_color(INK)
+        ax.spines[side].set_linewidth(0.9)
+    ax.title.set_fontweight("bold")
+    ax.title.set_color(INK)
+
+
+def add_panel_title(ax, title: str, subtitle: str | None = None):
+    ax.set_title(title, loc="left", fontsize=13.5, pad=10)
+    if subtitle:
+        ax.text(
+            0.0,
+            1.005,
+            subtitle,
+            transform=ax.transAxes,
+            ha="left",
+            va="bottom",
+            color=MUTED,
+            fontsize=8.8,
+        )
+
+
+def plot_forecast(ax, y: pd.DataFrame, results, steps: int = 18):
+    forecast = results.forecast(steps=steps, confidence_level=0.95)
+    series = "Activity"
+    history = y[series].tail(42).to_numpy()
+    mean = forecast[series].to_numpy()
+    lower = forecast[f"{series}_lower"].to_numpy()
+    upper = forecast[f"{series}_upper"].to_numpy()
+
+    hist_x = np.arange(len(history))
+    future_x = np.arange(len(history), len(history) + steps)
+    bridge_x = np.r_[hist_x[-1], future_x]
+    bridge_mean = np.r_[history[-1], mean]
+    bridge_lower = np.r_[history[-1], lower]
+    bridge_upper = np.r_[history[-1], upper]
+
+    ax.plot(hist_x, history, color=INK, linewidth=2.0, zorder=3)
+    ax.fill_between(
+        bridge_x,
+        bridge_lower,
+        bridge_upper,
+        color=RED_LIGHT,
+        alpha=0.55,
+        linewidth=0,
+        zorder=1,
     )
+    ax.plot(bridge_x, bridge_mean, color=RED, linewidth=2.7, zorder=4)
+    ax.axvline(hist_x[-1], color=GRID, linewidth=1.0)
+
+    ypad = (max(bridge_upper.max(), history.max()) - min(bridge_lower.min(), history.min())) * 0.14
+    ax.set_ylim(min(bridge_lower.min(), history.min()) - ypad, max(bridge_upper.max(), history.max()) + ypad)
+    ax.set_xlim(0, future_x[-1] + 1)
+    ax.set_xticks([0, 20, 40, 59])
+    ax.set_xticklabels(["t-41", "t-21", "t-1", "t+18"])
+    ax.set_ylabel("Index")
+
+    ax.text(hist_x[7], history[7] + 0.18, "observed", color=INK, fontsize=9, fontweight="bold")
+    ax.text(future_x[-4], mean[-4] + 0.13, "forecast", color=RED, fontsize=9, fontweight="bold")
+    ax.text(future_x[5], upper[5] + 0.08, "95% interval", color="#9a413b", fontsize=8.5, fontweight="bold")
 
 
-def create_preview(output_path: Path):
-    results = fit_example()
-    observed_irf = results.impulse_response(
-        periods=36,
+def plot_irf(ax, results, periods: int = 24):
+    irf = results.impulse_response(
+        periods=periods,
         impulse_size=0.25,
         include_factors=False,
     )
-    panel_irf = results.panel_impulse_response(
-        periods=36,
-        impulse_size=0.25,
-        columns=list(results.x_names[:18]),
-        scale="std",
-    )
+    x = irf.index.to_numpy()
+
+    ax.axhline(0, color=INK, linewidth=0.9)
+    ax.plot(x, irf["Inflation"], color=GREY, linewidth=2.0, zorder=2)
+    ax.plot(x, irf["Policy rate"], color=BLUE_GREY, linewidth=2.2, zorder=3)
+    ax.plot(x, irf["Activity"], color=RED, linewidth=2.8, zorder=4)
+
+    ymin = min(irf.min().min(), -0.05)
+    ymax = max(irf.max().max(), 0.28)
+    ax.set_ylim(ymin - 0.03, ymax + 0.04)
+    ax.set_xlim(0, periods)
+    ax.set_xticks([0, 6, 12, 18, 24])
+    ax.set_xlabel("Periods after shock")
+    ax.set_ylabel("Response")
+
+    ax.text(1.0, irf["Policy rate"].iloc[1] + 0.025, "Policy rate", color=BLUE_GREY, fontsize=9, fontweight="bold")
+    ax.text(4.0, irf["Activity"].iloc[4] - 0.028, "Activity", color=RED, fontsize=9, fontweight="bold")
+    ax.text(6.0, irf["Inflation"].iloc[6] + 0.020, "Inflation", color=MUTED, fontsize=8.5, fontweight="bold")
+
+
+def plot_acorr(ax, results, nlags: int = 12):
+    acorr = results.acorr(nlags=nlags, resid=True)
+    pos = results.order.index("Activity")
+    vals = acorr[1:, pos, pos]
+    lags = np.arange(1, nlags + 1)
+    bound = 2.0 / np.sqrt(results.nobs)
+    colors = np.where(np.abs(vals) > bound, RED, "#333333")
+
+    ax.axhline(0, color=INK, linewidth=0.9)
+    ax.axhline(bound, color=INK, linewidth=0.9, linestyle=(0, (4, 3)))
+    ax.axhline(-bound, color=INK, linewidth=0.9, linestyle=(0, (4, 3)))
+    ax.bar(lags, vals, width=0.55, color=colors, edgecolor=colors, zorder=3)
+
+    ax.set_ylim(-0.34, 0.34)
+    ax.set_xlim(0.25, nlags + 0.75)
+    ax.set_xticks([1, 4, 8, 12])
+    ax.set_xlabel("Lag")
+    ax.set_ylabel("Correlation")
+    ax.text(8.15, bound + 0.025, r"$2/\sqrt{T}$ bounds", color=INK, fontsize=8.4, fontweight="bold")
+    ax.text(1.1, -0.285, "Activity residuals", color=MUTED, fontsize=8.8, fontweight="bold")
+
+
+def create_preview(output_path: Path):
+    y, results = fit_example()
 
     plt.rcParams.update(
         {
             "font.family": "DejaVu Sans",
             "axes.titlesize": 13,
-            "axes.labelsize": 10,
-            "xtick.labelsize": 9,
-            "ytick.labelsize": 9,
+            "axes.labelsize": 8.8,
+            "xtick.labelsize": 8.5,
+            "ytick.labelsize": 8.5,
+            "figure.facecolor": PAPER,
+            "savefig.facecolor": PAPER,
         }
     )
 
-    fig = plt.figure(figsize=(11.5, 7.2), dpi=180, facecolor="#f7f2e8")
-    ax = fig.add_axes([0.105, 0.18, 0.78, 0.54], facecolor="#f7f2e8")
+    fig, axes = plt.subplots(1, 3, figsize=(13.2, 5.2), dpi=180, facecolor=PAPER)
+    fig.subplots_adjust(left=0.055, right=0.985, bottom=0.18, top=0.72, wspace=0.28)
 
-    for col in panel_irf.columns:
-        ax.plot(
-            panel_irf.index,
-            panel_irf[col],
-            color="#9aa0a6",
-            linewidth=0.9,
-            alpha=0.26,
-            zorder=1,
-        )
+    for ax in axes:
+        style_axes(ax)
 
-    colors = {
-        "Activity": "#1f4e79",
-        "Inflation": "#7b3f00",
-        "Policy rate": "#c00000",
-    }
-    for col in ["Activity", "Inflation", "Policy rate"]:
-        ax.plot(
-            observed_irf.index,
-            observed_irf[col],
-            color=colors[col],
-            linewidth=2.6,
-            zorder=3,
-        )
+    add_panel_title(axes[0], "Forecast, h steps ahead", "Activity with a 95% prediction interval")
+    add_panel_title(axes[1], "Impulse response", "Policy-rate shock, orthogonalized response")
+    add_panel_title(axes[2], "Residual autocorrelation", r"Dashed lines are $2/\sqrt{T}$ bounds")
 
-    direct_label(ax, 1.35, observed_irf["Policy rate"].iloc[1], "Policy rate", colors["Policy rate"], dy=0.010)
-    direct_label(ax, 2.55, observed_irf["Activity"].iloc[2], "Activity", colors["Activity"], dy=-0.012)
-    direct_label(ax, 2.15, observed_irf["Inflation"].iloc[2], "Inflation", colors["Inflation"], dy=0.012)
-
-    ax.axhline(0, color="#202020", linewidth=0.9)
-    ax.axvline(0, color="#202020", linewidth=0.9)
-    ax.set_xlim(0, 39)
-    ymin = min(panel_irf.min().min(), observed_irf.min().min()) - 0.018
-    ymax = max(panel_irf.max().max(), observed_irf.max().max()) + 0.025
-    ax.set_ylim(ymin, ymax)
-    ax.set_xlabel("Months after shock")
-    ax.set_ylabel("Response")
-    ax.set_title("Estimated responses to a 25-basis-point policy-rate shock", loc="left", pad=12)
-    ax.grid(axis="y", color="#ddd5c7", linewidth=0.8)
-    ax.grid(axis="x", visible=False)
-    for side in ["top", "right"]:
-        ax.spines[side].set_visible(False)
-    for side in ["left", "bottom"]:
-        ax.spines[side].set_color("#202020")
-        ax.spines[side].set_linewidth(0.9)
+    plot_forecast(axes[0], y, results)
+    plot_irf(axes[1], results)
+    plot_acorr(axes[2], results)
 
     fig.text(
-        0.105,
-        0.925,
-        "What a FAVAR extracts from a large macro panel",
+        0.055,
+        0.91,
+        "Factor-Augmented Vector Autoregression (FAVAR)",
         fontsize=22,
         fontweight="bold",
-        color="#111111",
+        color=INK,
         ha="left",
     )
     fig.text(
-        0.105,
-        0.875,
-        "A synthetic example: many indicators are compressed into a few factors, then used to trace a monetary-policy shock.",
-        fontsize=11.5,
+        0.055,
+        0.855,
+        "Three model outputs researchers commonly inspect: forecast uncertainty, dynamic responses and residual diagnostics.",
+        fontsize=11.2,
         color="#3f3f3f",
         ha="left",
     )
-
-    flow_y = 0.795
-    flow_items = [
-        ("48 indicators", "X"),
-        ("2 latent factors", "F"),
-        ("FAVAR system", "VAR"),
-        ("policy responses", "IRF"),
-    ]
-    x_positions = [0.115, 0.330, 0.525, 0.735]
-    for (label, symbol), xpos in zip(flow_items, x_positions):
-        fig.text(
-            xpos,
-            flow_y,
-            symbol,
-            fontsize=10.5,
-            fontweight="bold",
-            color="white",
-            ha="center",
-            va="center",
-            bbox={
-                "boxstyle": "round,pad=0.34,rounding_size=0.10",
-                "facecolor": "#c00000",
-                "edgecolor": "#c00000",
-            },
-        )
-        fig.text(
-            xpos + 0.033,
-            flow_y,
-            label,
-            fontsize=10.5,
-            color="#202020",
-            ha="left",
-            va="center",
-        )
-    for xpos in [0.285, 0.480, 0.690]:
-        fig.text(xpos, flow_y, "→", fontsize=15, color="#202020", va="center", ha="center")
-
     fig.text(
-        0.105,
-        0.092,
-        "Note: grey lines show selected panel-projected responses; coloured lines show observed variables in the FAVAR system. Data are synthetic.",
-        fontsize=8.8,
-        color="#4f4f4f",
-        ha="left",
-    )
-    fig.text(
-        0.105,
         0.055,
-        "Source: favar Python package, synthetic demonstration",
-        fontsize=8.8,
-        color="#4f4f4f",
+        0.075,
+        "Source: favar Python package; synthetic macroeconomic panel.",
+        fontsize=8.5,
+        color=MUTED,
         ha="left",
     )
 
