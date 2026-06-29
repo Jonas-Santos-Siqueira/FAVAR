@@ -116,17 +116,30 @@ def style_axes(ax):
 
 
 def add_panel_title(ax, title: str, subtitle: str | None = None):
-    ax.set_title(title, loc="left", fontsize=13.5, pad=10)
+    ax.set_title("")
+    ax.text(
+        0.0,
+        1.155,
+        title,
+        transform=ax.transAxes,
+        ha="left",
+        va="bottom",
+        color=INK,
+        fontsize=13.2,
+        fontweight="normal",
+        clip_on=False,
+    )
     if subtitle:
         ax.text(
             0.0,
-            1.005,
+            1.085,
             subtitle,
             transform=ax.transAxes,
             ha="left",
             va="bottom",
             color=MUTED,
-            fontsize=8.8,
+            fontsize=8.5,
+            clip_on=False,
         )
 
 
@@ -165,7 +178,17 @@ def plot_forecast(ax, y: pd.DataFrame, results, steps: int = 18):
     ax.set_xticklabels(["t-41", "t-21", "t-1", "t+18"])
     ax.set_ylabel("Index")
 
-    ax.text(hist_x[7], history[7] + 0.18, "observed", color=INK, fontsize=9, fontweight="bold")
+    label_box = {"facecolor": PAPER, "edgecolor": "none", "pad": 0.8}
+    ax.text(
+        hist_x[12],
+        -0.10,
+        "observed",
+        color=INK,
+        fontsize=8.0,
+        fontweight="bold",
+        bbox=label_box,
+        zorder=5,
+    )
     ax.text(future_x[-4], mean[-4] + 0.13, "forecast", color=RED, fontsize=9, fontweight="bold")
     ax.text(future_x[5], upper[5] + 0.08, "95% interval", color="#9a413b", fontsize=8.5, fontweight="bold")
 
@@ -193,7 +216,16 @@ def plot_irf(ax, results, periods: int = 24):
 
     ax.text(1.0, irf["Policy rate"].iloc[1] + 0.025, "Policy rate", color=BLUE_GREY, fontsize=9, fontweight="bold")
     ax.text(4.0, irf["Activity"].iloc[4] - 0.028, "Activity", color=RED, fontsize=9, fontweight="bold")
-    ax.text(6.0, irf["Inflation"].iloc[6] + 0.020, "Inflation", color=MUTED, fontsize=8.5, fontweight="bold")
+    ax.text(
+        7.35,
+        0.030,
+        "Inflation",
+        color=MUTED,
+        fontsize=8.2,
+        fontweight="bold",
+        bbox={"facecolor": PAPER, "edgecolor": "none", "pad": 0.5},
+        zorder=5,
+    )
 
 
 def plot_acorr(ax, results, nlags: int = 12):
